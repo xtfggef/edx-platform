@@ -328,7 +328,7 @@ def get_redirect_to(request):
         else:
             themes = get_themes()
             for theme in themes:
-                if theme.theme_dir_name in redirect_to:
+                if theme.theme_dir_name in urlparse.urlparse(redirect_to).path:
                     log.warning(
                         u'Redirect to theme content detected after login page: %(redirect_to)r',
                         {"redirect_to": redirect_to}
