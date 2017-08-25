@@ -20,11 +20,12 @@ from slumber.exceptions import HttpClientError, HttpServerError
 
 # These imports refer to lms djangoapps.
 # Their testcases are only run under lms.
+from course_modes.tests.factories import CourseModeFactory
 from certificates.models import CertificateStatuses, GeneratedCertificate  # pylint: disable=import-error
 from certificates.tests.factories import GeneratedCertificateFactory  # pylint: disable=import-error
 from openedx.core.djangoapps.commerce.utils import ECOMMERCE_DATE_FORMAT
 from student.models import CourseEnrollment, CourseEnrollmentAttribute
-from student.tests.factories import CourseModeFactory, UserFactory
+from student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -76,26 +77,6 @@ class RefundableTest(SharedModuleStoreTestCase):
         self.verified_mode.expiration_datetime = datetime.now(pytz.UTC) - timedelta(days=1)
         self.verified_mode.save()
         self.assertTrue(self.enrollment.refundable())
-
-    def test_refundable_of_purchased_course(self):
-        """ Assert that courses without a verified mode are not refundable"""
-        self.client.login(username=self.user.username, password=self.USER_PASSWORD)
-        course = CourseFactory.create()
-        CourseModeFactory.create(
-            course_id=course.id,
-            mode_slug='honor',
-            min_price=10,
-            currency='usd',
-            mode_display_name='honor',
-            expiration_datetime=datetime.now(pytz.UTC) + timedelta(days=1)
-        )
-        enrollment = CourseEnrollment.enroll(self.user, course.id, mode='honor')
-
-        # TODO: Until we can allow course administrators to define a refund period for paid for courses show_refund_option should be False. # pylint: disable=fixme
-        self.assertFalse(enrollment.refundable())
-
-        resp = self.client.post(reverse('student.views.dashboard', args=[]))
-        self.assertIn('You will not be refunded the amount you paid.', resp.content)
 
     @patch('student.models.CourseEnrollment.refund_cutoff_date')
     def test_refundable_when_certificate_exists(self, cutoff_date):

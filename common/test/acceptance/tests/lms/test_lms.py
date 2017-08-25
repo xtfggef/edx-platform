@@ -5,7 +5,6 @@ End-to-end tests for the LMS.
 import urllib
 from datetime import datetime, timedelta
 from textwrap import dedent
-from unittest import skip
 
 import pytz
 from bok_choy.promise import EmptyPromise
@@ -345,7 +344,7 @@ class RegisterFromCombinedPageTest(UniqueCourseTest):
         errors = self.register_page.wait_for_errors()
         self.assertIn(u'Please enter your Public Username.', errors)
         self.assertIn(u'You must agree to the édX Terms of Service and Honor Code', errors)
-        self.assertIn(u'Please select your Country.', errors)
+        self.assertIn(u'Select your country or region of residence.', errors)
         self.assertIn(u'Please tell us your favorite movie.', errors)
 
     def test_toggle_to_login_form(self):
@@ -436,7 +435,6 @@ class PayAndVerifyTest(EventsTestMixin, UniqueCourseTest):
         # Add a verified mode to the course
         ModeCreationPage(self.browser, self.course_id, mode_slug=u'verified', mode_display_name=u'Verified Certificate', min_price=10, suggested_prices='10,20').visit()
 
-    @skip("Flaky 02/02/2015")
     def test_immediate_verification_enrollment(self):
         # Create a user and log them in
         student_id = AutoAuthPage(self.browser).visit().get_user_id()
@@ -950,91 +948,6 @@ class TooltipTest(UniqueCourseTest):
         self.courseware_page.visit()
 
         self.courseware_page.verify_tooltips_displayed()
-
-
-@attr(shard=1)
-class PreRequisiteCourseTest(UniqueCourseTest):
-    """
-    Tests that pre-requisite course messages are displayed
-    """
-
-    def setUp(self):
-        """
-        Initialize pages and install a course fixture.
-        """
-        super(PreRequisiteCourseTest, self).setUp()
-
-        CourseFixture(
-            self.course_info['org'], self.course_info['number'],
-            self.course_info['run'], self.course_info['display_name']
-        ).install()
-
-        self.prc_info = {
-            'org': 'test_org',
-            'number': self.unique_id,
-            'run': 'prc_test_run',
-            'display_name': 'PR Test Course' + self.unique_id
-        }
-
-        CourseFixture(
-            self.prc_info['org'], self.prc_info['number'],
-            self.prc_info['run'], self.prc_info['display_name']
-        ).install()
-
-        pre_requisite_course_key = generate_course_key(
-            self.prc_info['org'],
-            self.prc_info['number'],
-            self.prc_info['run']
-        )
-        self.pre_requisite_course_id = unicode(pre_requisite_course_key)
-
-        self.dashboard_page = DashboardPage(self.browser)
-        self.settings_page = SettingsPage(
-            self.browser,
-            self.course_info['org'],
-            self.course_info['number'],
-            self.course_info['run']
-
-        )
-        # Auto-auth register for the course
-        AutoAuthPage(self.browser, course_id=self.course_id).visit()
-
-    def test_dashboard_message(self):
-        """
-         Scenario: Any course where there is a Pre-Requisite course Student dashboard should have
-         appropriate messaging.
-            Given that I am on the Student dashboard
-            When I view a course with a pre-requisite course set
-            Then At the bottom of course I should see course requirements message.'
-        """
-
-        # visit dashboard page and make sure there is not pre-requisite course message
-        self.dashboard_page.visit()
-        self.assertFalse(self.dashboard_page.pre_requisite_message_displayed())
-
-        # Logout and login as a staff.
-        LogoutPage(self.browser).visit()
-        AutoAuthPage(self.browser, course_id=self.course_id, staff=True).visit()
-
-        # visit course settings page and set pre-requisite course
-        self.settings_page.visit()
-        self._set_pre_requisite_course()
-
-        # Logout and login as a student.
-        LogoutPage(self.browser).visit()
-        AutoAuthPage(self.browser, course_id=self.course_id, staff=False).visit()
-
-        # visit dashboard page again now it should have pre-requisite course message
-        self.dashboard_page.visit()
-        EmptyPromise(lambda: self.dashboard_page.available_courses > 0, 'Dashboard page loaded').fulfill()
-        self.assertTrue(self.dashboard_page.pre_requisite_message_displayed())
-
-    def _set_pre_requisite_course(self):
-        """
-        set pre-requisite course
-        """
-        select_option_by_value(self.settings_page.pre_requisite_course_options, self.pre_requisite_course_id)
-        self.settings_page.save_changes()
 
 
 @attr(shard=1)

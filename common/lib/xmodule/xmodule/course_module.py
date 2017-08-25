@@ -732,7 +732,8 @@ class CourseFields(object):
             'For example, to specify that teams should have a maximum of 5 participants and provide a list of '
             '2 topics, enter the configuration in this format: {example_format}. '
             'In "id" values, the only supported special characters are underscore, hyphen, and period.'
-        ).format(
+        ),
+        help_format_args=dict(
             # Put the sample JSON into a format variable so that translators
             # don't muck with it.
             example_format=(
@@ -1452,13 +1453,4 @@ class CourseSummary(object):
         """
         Returns whether the course has ended.
         """
-        try:
-            return course_metadata_utils.has_course_ended(self.end)
-        except TypeError as e:
-            log.warning(
-                "Course '{course_id}' has an improperly formatted end date '{end_date}'. Error: '{err}'.".format(
-                    course_id=unicode(self.id), end_date=self.end, err=e
-                )
-            )
-            modified_end = self.end.replace(tzinfo=utc)
-            return course_metadata_utils.has_course_ended(modified_end)
+        return course_metadata_utils.has_course_ended(self.end)

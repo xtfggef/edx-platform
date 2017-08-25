@@ -170,6 +170,7 @@ class Command(BaseCommand):
                     )
                     if (audit_partition_group_access
                             and audit_course_user_group_partition_group.group_id in audit_partition_group_access):
+                        print "Queueing XBlock at location: '%s' for Audit Content Group update " % item.location
                         set_audit_enrollment_track = True
 
                 # Check the partition and group IDs for the verified course group, if it exists in
@@ -178,19 +179,20 @@ class Command(BaseCommand):
                     verified_course_user_group_partition_group.partition_id,
                     None
                 )
-                if (verified_partition_group_access
-                        and verified_course_user_group_partition_group.group_id in verified_partition_group_access):
-                    set_verified_enrollment_track = True
-
-                # If the item has group_access that is not the
-                # verified or audit group IDs then raise an error
-                # This only needs to be checked for this partition_group once
-                non_verified_track_access_groups = set(verified_partition_group_access) - all_cohorted_track_group_ids
-                if non_verified_track_access_groups:
-                    errors.append(
-                        "Non audit/verified cohorted content group set for xblock, location '%s' with IDs '%s'"
-                        % (item.location, non_verified_track_access_groups)
-                    )
+                if verified_partition_group_access:
+                    non_verified_track_access_groups = (set(verified_partition_group_access) -
+                                                        all_cohorted_track_group_ids)
+                    # If the item has group_access that is not the
+                    # verified or audit group IDs then raise an error
+                    # This only needs to be checked for this partition_group once
+                    if non_verified_track_access_groups:
+                        errors.append(
+                            "Non audit/verified cohorted content group set for xblock, location '%s' with IDs '%s'"
+                            % (item.location, non_verified_track_access_groups)
+                        )
+                    if verified_course_user_group_partition_group.group_id in verified_partition_group_access:
+                        print "Queueing XBlock at location: '%s' for Verified Content Group update " % item.location
+                        set_verified_enrollment_track = True
 
                 # Add the enrollment track ids to a group access array
                 enrollment_track_group_access = []
@@ -221,6 +223,7 @@ class Command(BaseCommand):
             for item in items_to_update:
                 module_store.update_item(item, ModuleStoreEnum.UserID.mgmt_command)
                 module_store.publish(item.location, ModuleStoreEnum.UserID.mgmt_command)
+                print "Updated and published XBlock at location: '%s'" % item.location
 
         # Check if we should delete any partition groups if there are no errors.
         # If there are errors, none of the xblock items will have been updated,
