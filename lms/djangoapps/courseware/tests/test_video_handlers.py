@@ -11,7 +11,7 @@ import ddt
 import freezegun
 from mock import MagicMock, Mock, patch
 from nose.plugins.attrib import attr
-from webob import Request
+from webob import Request, Response
 
 from common.test.utils import normalize_repr
 from openedx.core.djangoapps.contentserver.caching import del_cached_content
@@ -370,6 +370,37 @@ class TestTranscriptDownloadDispatch(TestVideo):
         self.assertEqual(response.headers['Content-Type'], 'application/x-subrip; charset=utf-8')
         self.assertEqual(response.headers['Content-Disposition'], 'attachment; filename="塞.srt"')
 
+    @patch('xmodule.video_module.video_handlers.get_video_transcript_data')
+    @patch('xmodule.video_module.VideoModule.get_transcript', Mock(side_effect=NotFoundError))
+    def test_download_fallback_transcript(self,  mock_get_transcript_data):
+        """
+        Verify val transcript is returned as a fallback if it is not found in the content store.
+        """
+        mock_get_transcript_data.return_value.transcript.name = '012345678.sjson'
+        mock_get_transcript_data.return_value.transcript.file.read.return_value = json.dumps({
+            "start": [10],
+            "end": [100],
+            "text": ["Hi, welcome to Edx."],
+        })
+
+        # Make request to XModule transcript handler
+        request = Request.blank('/download')
+        response = self.item.transcript(request=request, dispatch='download')
+
+        # Expected response
+        expected_content = u'0\n00:00:00,010 --> 00:00:00,100\nHi, welcome to Edx.\n\n'
+        expected_headers = {
+            'Content-Disposition': 'attachment; filename="012345678.srt"',
+            'Content-Language': u'en',
+            'Content-Type': 'application/x-subrip; charset=utf-8'
+        }
+
+        # Assert the actual response
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, expected_content)
+        for attr, value in expected_headers.iteritems():
+            self.assertEqual(response.headers[attr], value)
+
 
 @attr(shard=1)
 @ddt.ddt
@@ -601,6 +632,36 @@ class TestTranscriptTranslationGetDispatch(TestVideo):
         store = modulestore()
         with store.branch_setting(ModuleStoreEnum.Branch.draft_preferred, self.course.id):
             store.update_item(self.course, self.user.id)
+
+    @patch('xmodule.video_module.video_handlers.get_video_transcript_data')
+    @patch('xmodule.video_module.VideoModule.translation', Mock(side_effect=NotFoundError))
+    @patch('xmodule.video_module.VideoModule.get_static_transcript', Mock(return_value=Response(status=404)))
+    def test_translation_fallback_transcript(self,  mock_get_transcript_data):
+        """
+        Verify that the val transcript is returned as a fallback,
+        if it is not found in the content store.
+        """
+        sjson_content = json.dumps({
+            "start": [10],
+            "end": [100],
+            "text": ["Hi, welcome to Edx."],
+        })
+        mock_get_transcript_data.return_value.transcript.file.read.return_value = sjson_content
+
+        # Make request to XModule transcript handler
+        response = self.item.transcript(request=Request.blank('/translation/en'), dispatch='translation/en')
+
+        # Expected headers
+        expected_headers = {
+            'Content-Language': 'en',
+            'Content-Type': 'application/json'
+        }
+
+        # Assert the actual response
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, sjson_content)
+        for attr, value in expected_headers.iteritems():
+            self.assertEqual(response.headers[attr], value)
 
 
 @attr(shard=1)

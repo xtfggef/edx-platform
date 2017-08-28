@@ -41,7 +41,7 @@ from xmodule.x_module import XModule, module_attr
 from xmodule.xml_module import deserialize_field, is_pointer_tag, name_to_pathname
 
 from .bumper_utils import bumperize
-from .transcripts_utils import Transcript, VideoTranscriptsMixin, get_html5_ids
+from .transcripts_utils import Transcript, VideoTranscriptsMixin, get_html5_ids, get_video_transcript_data
 from .video_handlers import VideoStudentViewHandlers, VideoStudioViewHandlers
 from .video_utils import create_youtube_string, format_xml_exception_message, get_poster, rewrite_video_url
 from .video_xfields import VideoFields
@@ -177,7 +177,7 @@ class VideoModule(VideoFields, VideoTranscriptsMixin, VideoStudentViewHandlers, 
         if self.download_track:
             if self.track:
                 track_url = self.track
-            elif sub or other_lang:
+            elif (sub or other_lang) or (edxval_api and get_video_transcript_data(self, self.transcript_language)):
                 track_url = self.runtime.handler_url(self, 'transcript', 'download').rstrip('/?')
 
         transcript_language = self.get_default_transcript_language(transcripts)

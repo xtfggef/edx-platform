@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for transcripts_utils. """
 import copy
+import ddt
 import textwrap
 import unittest
 from uuid import uuid4
@@ -643,3 +644,64 @@ class TestSubsFilename(unittest.TestCase):
         self.assertEqual(name, u'subs_˙∆©ƒƒƒ.srt.sjson')
         name = transcripts_utils.subs_filename(u"˙∆©ƒƒƒ", 'uk')
         self.assertEqual(name, u'uk_subs_˙∆©ƒƒƒ.srt.sjson')
+
+
+@ddt.ddt
+class TestGetTranscriptsData(unittest.TestCase):
+    """
+    Tests for get_transcript_data
+    """
+    @ddt.data(
+        (
+            {
+                'edx_video_id': '000-000-000',
+                'youtube_id_1_0': '12as34',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm', 'foo/bar/baz.m3u8'
+                ],
+            },
+            lambda **kwargs: {
+                ('000-000-000', 'en'): 'EDX_VIDEO_ID_SUBS',
+                ('12as34', 'en'): 'YOUTUBE_SUBS',
+                ('foo', 'en'): 'HTML5_SUBS'
+            }[(kwargs['video_id'], kwargs['language_code'])],
+            'EDX_VIDEO_ID_SUBS',
+        ),
+        (
+            {
+                'edx_video_id': '',
+                'youtube_id_1_0': '12as34',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm', 'foo/bar/baz.m3u8'
+                ],
+            },
+            lambda **kwargs: {
+                ('12as34', 'en'): 'YOUTUBE_SUBS',
+                ('foo', 'en'): 'HTML5_SUBS'
+            }[(kwargs['video_id'], kwargs['language_code'])],
+            'YOUTUBE_SUBS',
+        ),
+        (
+            {
+                'edx_video_id': '',
+                'youtube_id_1_0': '',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm',
+                ],
+            },
+            lambda **kwargs: {
+                ('foo', 'en'): 'HTML5_SUBS'
+            }[(kwargs['video_id'], kwargs['language_code'])],
+            'HTML5_SUBS',
+        )
+    )
+    @ddt.unpack
+    @patch('xmodule.video_module.transcripts_utils.edxval_api.get_video_transcript')
+    def test_video_transcript_data(self, video_attributes, side_effect, expected_transcript, mock_get_video_transcript):
+        """
+        Tests video transcript data.
+        """
+        video = Mock(**video_attributes)
+        mock_get_video_transcript.side_effect = side_effect
+        transcript = transcripts_utils.get_video_transcript_data(video, 'en')
+        self.assertEqual(transcript, expected_transcript)

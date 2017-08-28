@@ -11,6 +11,8 @@ from pysrt import SubRipTime, SubRipItem, SubRipFile
 from lxml import etree
 from HTMLParser import HTMLParser
 
+from edxval import api as edxval_api
+
 from xmodule.exceptions import NotFoundError
 from xmodule.contentstore.content import StaticContent
 from xmodule.contentstore.django import contentstore
@@ -466,6 +468,37 @@ def get_or_create_sjson(item, transcripts):
         generate_sjson_for_all_speeds(item, user_filename, result_subs_dict, item.transcript_language)
     sjson_transcript = Transcript.asset(item.location, source_subs_id, item.transcript_language).data
     return sjson_transcript
+
+
+def get_video_transcript_data(video, lang_code):
+    """
+    Gets video transcript(s) from edx-val for either an edx_video_id or any of the external sources.
+
+    Arguments:
+        video(VideoDescriptor): A video XModule descriptor.
+        lang_code(str): Language code
+    """
+    video_transcript_data = None
+    if video.edx_video_id:
+        # Check transcripts for an `edx_video_id`
+        video_transcript_data = edxval_api.get_video_transcript(video_id=video.edx_video_id, language_code=lang_code)
+        # TODO: Make decision about actual external sources if we don't get transcript for edx_video_id.
+    else:
+        # Check if transcripts are there for any of the external source.
+        external_video_ids = [video.youtube_id_1_0] + get_html5_ids(video.html5_sources)
+        for video_id in external_video_ids:
+            # Youtube id can be an empty string.
+            if not video_id:
+                continue
+
+            video_transcript_data = edxval_api.get_video_transcript(
+                video_id=video_id,
+                language_code=lang_code
+            )
+            if video_transcript_data:
+                break
+
+    return video_transcript_data
 
 
 class Transcript(object):

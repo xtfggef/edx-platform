@@ -16,6 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.utils.translation import ugettext as _
+from edxval import api as edxval_api
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import UsageKey
 
@@ -36,8 +37,11 @@ from xmodule.video_module.transcripts_utils import (
     get_transcripts_from_youtube,
     manage_video_subtitles_save,
     remove_subs_from_store,
-    youtube_video_transcript_name
+    youtube_video_transcript_name,
+    get_html5_ids,
 )
+from xmodule.video_module.transcripts_utils import Transcript
+from xmodule.video_module.transcripts_utils import get_video_transcript_data
 
 __all__ = [
     'upload_transcripts',
@@ -154,18 +158,17 @@ def download_transcripts(request):
         log.debug("Can't find item by locator.")
         raise Http404
 
-    subs_id = request.GET.get('subs_id')
-    if not subs_id:
-        log.debug('GET data without "subs_id" property.')
-        raise Http404
-
     if item.category != 'video':
         log.debug('transcripts are supported only for video" modules.')
         raise Http404
 
-    filename = 'subs_{0}.srt.sjson'.format(subs_id)
-    content_location = StaticContent.compute_location(item.location.course_key, filename)
     try:
+        subs_id = request.GET.get('subs_id')
+        if not subs_id:
+            raise NotFoundError
+
+        filename = 'subs_{0}.srt.sjson'.format(subs_id)
+        content_location = StaticContent.compute_location(item.location.course_key, filename)
         sjson_transcripts = contentstore().find(content_location)
         log.debug("Downloading subs for %s id", subs_id)
         str_subs = generate_srt_from_sjson(json.loads(sjson_transcripts.data), speed=1.0)
@@ -177,6 +180,27 @@ def download_transcripts(request):
         return response
     except NotFoundError:
         log.debug("Can't find content in storage for %s subs", subs_id)
+        # Look for transcripts in VAL first.
+        video_transcript = get_video_transcript_data(item, lang_code=u'en')
+        if video_transcript:
+            # Read the transcript content
+            video_transcript.transcript.file.open(mode='rb')
+            transcript_sjson_content = video_transcript.transcript.file.read()
+            video_transcript.transcript.file.close()
+
+            if transcript_sjson_content:
+                transcript_content = Transcript.convert(
+                    transcript_sjson_content,
+                    input_format='sjson',
+                    output_format='srt'
+                )
+
+                # Construct an HTTP response
+                filename = video_transcript.transcript.name.split('.')[0].encode('utf8')
+                response = HttpResponse(transcript_content, content_type='application/x-subrip; charset=utf-8')
+                response['Content-Disposition'] = 'attachment; filename="{filename}.srt"'.format(filename=filename)
+                return response
+
         raise Http404
 
 
@@ -284,6 +308,13 @@ def check_transcripts(request):
             transcripts_presence['html5_equal'] = json.loads(html5_subs[0]) == json.loads(html5_subs[1])
 
     command, subs_to_use = _transcripts_logic(transcripts_presence, videos)
+
+    # Try searching in VAL for the transcript as a last resort.
+    if command == 'not_found':
+        video_transcript = get_video_transcript_data(item, lang_code=u'en')
+        if video_transcript:
+            command = 'found'
+
     transcripts_presence.update({
         'command': command,
         'subs': subs_to_use,
