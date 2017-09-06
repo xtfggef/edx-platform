@@ -372,7 +372,7 @@ class TestTranscriptDownloadDispatch(TestVideo):
 
     @patch('xmodule.video_module.video_handlers.get_video_transcript_data')
     @patch('xmodule.video_module.VideoModule.get_transcript', Mock(side_effect=NotFoundError))
-    def test_download_fallback_transcript(self,  mock_get_transcript_data):
+    def test_download_fallback_transcript(self, mock_get_transcript_data):
         """
         Verify val transcript is returned as a fallback if it is not found in the content store.
         """
@@ -636,7 +636,7 @@ class TestTranscriptTranslationGetDispatch(TestVideo):
     @patch('xmodule.video_module.video_handlers.get_video_transcript_data')
     @patch('xmodule.video_module.VideoModule.translation', Mock(side_effect=NotFoundError))
     @patch('xmodule.video_module.VideoModule.get_static_transcript', Mock(return_value=Response(status=404)))
-    def test_translation_fallback_transcript(self,  mock_get_transcript_data):
+    def test_translation_fallback_transcript(self, mock_get_transcript_data):
         """
         Verify that the val transcript is returned as a fallback,
         if it is not found in the content store.
