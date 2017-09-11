@@ -24,7 +24,6 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from openedx.core.djangoapps.signals.signals import COURSE_GRADE_NOW_PASSED, LEARNER_NOW_VERIFIED
 from student.models import CourseEnrollment
 
-
 log = logging.getLogger(__name__)
 
 
@@ -73,12 +72,14 @@ def _listen_for_track_change(sender, user, **kwargs):  # pylint: disable=unused-
     for enrollment in user_enrollments:
         if grade_factory.read(user=user, course=enrollment.course_overview).passed:
             if fire_ungenerated_certificate_task(user, enrollment.course_id, expected_verification_status):
-                log.info((u'Certificate generation task initiated for {user} : {course} via track change ' +
-                         u'with verification status of {status}').format(
-                            user=user.id,
-                            course=enrollment.course_id,
-                            verification_status=expected_verification_status
-                        ))
+                message = (u'Certificate generation task initiated for {user} : {course} via track change ' +
+                           u'with verification status of {status}'
+                           )
+                log.info(message.format(
+                    user=user.id,
+                    course=enrollment.course_id,
+                    verification_status=expected_verification_status
+                ))
 
 
 def fire_ungenerated_certificate_task(user, course_key, expected_verification_status=None):
