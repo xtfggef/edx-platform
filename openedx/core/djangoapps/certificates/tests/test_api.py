@@ -9,6 +9,7 @@ from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFact
 # this is really lms.djangoapps.certificates, but we can't refer to it like
 # that here without raising a RuntimeError about Conflicting models
 from certificates.models import CertificateStatuses, GeneratedCertificate
+from course_modes.models import CourseMode
 from openedx.core.djangoapps.certificates import api
 from openedx.core.djangoapps.certificates.config import waffle as certs_waffle
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
@@ -86,22 +87,34 @@ class VisibilityTestCase(CertificatesApiBaseTestCase):
             self.assertEqual(expected_value, api.can_show_certificate_available_date_field(self.course))
 
     @ddt.data(
-        ('honor', CertificateStatuses.downloadable, ),
-        ('verified', True, True),
-        ('honor', False, False),
-        ('verified', False, False),
-        (None, True, False), # check that any other enrollment mode won't show button
+        (CourseMode.HONOR, CertificateStatuses.downloadable, True, True),
+        (CourseMode.VERIFIED, CertificateStatuses.downloadable, True, True),
+        (CourseMode.HONOR, CertificateStatuses.unverified, True, False),
+        (CourseMode.VERIFIED, CertificateStatuses.unverified, True, False),
+        (CourseMode.AUDIT, CertificateStatuses.auditing, True, False),
+        (CourseMode.HONOR, CertificateStatuses.downloadable, False, False),
+        (CourseMode.VERIFIED, CertificateStatuses.downloadable, False, False),
+        (CourseMode.HONOR, CertificateStatuses.unverified, False, False),
+        (CourseMode.VERIFIED, CertificateStatuses.unverified, False, False),
+        (CourseMode.AUDIT, CertificateStatuses.auditing, False, False),
     )
     @ddt.unpack
-    def test_can_show_view_certificate_button(
-            self, enrollment_mode, certificate_status, certificate_mode, expected_value
+    def test_can_show_view_certificate_button_feature_enabled_toggle_pacing(
+            self, enrollment_mode, certificate_status, self_paced, expected_value
     ):
         self.enrollment.mode = enrollment_mode
+        self.enrollment.save()
+
+        self.course.self_paced = self_paced
+        self.course.save()
+
         certificate = GeneratedCertificateFactory.create(
             user=self.user,
             course_id=self.course.id,
             grade='1.0',
             status=certificate_status,
-            mode=certificate_mode,
+            mode=enrollment_mode,
         )
-        self.assertEquals(expected_value, api.can_show_view_certificate_button(self.user, self.course))
+
+        with configure_waffle_namespace(True, True):
+            self.assertEquals(expected_value, api.can_show_view_certificate_button(self.user, self.course))
