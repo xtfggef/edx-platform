@@ -7,7 +7,6 @@
 $edx-footer-link-color: $link-color;
 $edx-footer-bg-color: rgb(252,252,252);
 
-
 // Aggressively scoped for Drupal
 // ==============================
 // These styles are being loaded on Drupal, LMS and WordPress
@@ -15,9 +14,51 @@ $edx-footer-bg-color: rgb(252,252,252);
 // CMS styles
 footer#footer-edx-v3 {
   background: $edx-footer-bg-color;
-  padding: 20px;
+  padding: 15px 0;
   border-top: 1px solid $courseware-button-border-color;
 
+  .container-bootstrap {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+  h3{
+    font-size: 16px !important;
+    font-weight: 600;
+    padding:5px 0; 
+    color: #646464 !important;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif !important;
+  }
+  .widget_nav_menu ul {
+      list-style: outside none none;
+      padding-left: 0;
+      margin-bottom: 15px; 
+  }
+   .widget_nav_menu ul li{  
+      font-family: "Helvetica Neue",Helvetica,Arial,sans-serif !important;
+  }
+
+  .footer-language-selector{
+    // display: inline-block;
+    float: right;
+  }
+
+  .clear-margins{
+    margin-top: 15px;
+    border-bottom: 1px solid #e6e6e6;
+    
+  }
+
+  .social{
+    margin-top: 30px;
+  }
+  .applinks{
+    margin-top: 10px ;
+  }
+  .edx-footer-logo{
+    display: inline-block;
+  }
   // To match the Pattern Library
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -36,6 +77,7 @@ footer#footer-edx-v3 {
   .copyright {
     margin-top: 30px;
   }
+
 
   .site-nav,
   .legal-notices {
@@ -117,13 +159,37 @@ footer#footer-edx-v3 {
     color: $edx-footer-link-color;
   }
 
+
+
   a.sm-link {
     @include float(left);
-    @include margin(0, 0, 10px, 10px);
-    @include font-size(28);
+    @include margin(0, 6px, 10px, 0px);
+    @include font-size(40);
     @include line-height(28);
     width: 35px;
     height: 30px;
+    line-height: 1;
+    position: relative;
+    display: inline;
+    background: none;
+    text-align: left;
+
+    &:first-of-type {
+      @include margin-left(0);
+    }
+
+    &:hover,
+    &:focus {
+      opacity: 0.7;
+      border: none;
+    }
+  }
+    a.social-links {
+    @include margin(0, -7px, 10px, 0px);
+    @include font-size(40);
+    @include line-height(28);
+    // width: 35px;
+    // height: 30px;
     line-height: 1;
     position: relative;
     display: inline;
@@ -155,6 +221,10 @@ footer#footer-edx-v3 {
       height: 40px;
       max-width: 200px;
     }
+    //img:nth-of-type(2){
+    //  float:right;
+    //}
+
   }
 
   .site-nav,
