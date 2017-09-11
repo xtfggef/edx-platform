@@ -6,7 +6,9 @@ import ddt
 import waffle
 
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
-from lms.djangoapps.certificates import CertificateStatuses, GeneratedCertificate
+# this is really lms.djangoapps.certificates, but we can't refer to it like
+# that here without raising a RuntimeError about Conflicting models
+from certificates.models import CertificateStatuses, GeneratedCertificate
 from openedx.core.djangoapps.certificates import api
 from openedx.core.djangoapps.certificates.config import waffle as certs_waffle
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
@@ -95,10 +97,11 @@ class VisibilityTestCase(CertificatesApiBaseTestCase):
             self, enrollment_mode, certificate_status, certificate_mode, expected_value
     ):
         self.enrollment.mode = enrollment_mode
-        certificate = GeneratedCertificateFactory(
+        certificate = GeneratedCertificateFactory.create(
             user=self.user,
             course_id=self.course.id,
             grade='1.0',
             status=certificate_status,
             mode=certificate_mode,
         )
+        self.assertEquals(expected_value, api.can_show_view_certificate_button(self.user, self.course))
