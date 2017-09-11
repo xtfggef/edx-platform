@@ -470,6 +470,36 @@ def get_or_create_sjson(item, transcripts):
     return sjson_transcript
 
 
+def get_video_with_transcript_available(video, language_code=None):
+    """
+    Get video id set on the video component, it can be edx_video_id or any of the external sources.
+
+    Arguments:
+        video(VideoDescriptor): A video XModule descriptor.
+        language_code: language code.
+
+    Returns:
+        tuple: external or internal, video id.
+    """
+    if video.edx_video_id and edxval_api.is_transcript_available(video.edx_video_id, language_code):
+        # TODO: Make decision about actual external sources if we don't get transcript for edx_video_id.
+        result = (False, video.edx_video_id,)
+    else:
+        # Check if transcripts are there for any of the external source.
+        external_video_ids = [video.youtube_id_1_0] + get_html5_ids(video.html5_sources)
+        result = (None, None)
+        for video_id in external_video_ids:
+            # Youtube id can be an empty string.
+            if not video_id:
+                continue
+
+            if edxval_api.is_transcript_available(video_id, language_code):
+                result = (True, video_id,)
+                break
+
+    return result
+
+
 def get_video_transcript_data(video, lang_code):
     """
     Gets video transcript(s) from edx-val for either an edx_video_id or any of the external sources.

@@ -649,7 +649,7 @@ class TestSubsFilename(unittest.TestCase):
 @ddt.ddt
 class TestGetTranscriptsData(unittest.TestCase):
     """
-    Tests for get_transcript_data
+    Tests for transcript utils
     """
     @ddt.data(
         (
@@ -705,3 +705,72 @@ class TestGetTranscriptsData(unittest.TestCase):
         mock_get_video_transcript.side_effect = side_effect
         transcript = transcripts_utils.get_video_transcript_data(video, 'en')
         self.assertEqual(transcript, expected_transcript)
+
+    @ddt.data(
+        (
+            {
+                'edx_video_id': '000-000-000',
+                'youtube_id_1_0': '12as34',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm', 'foo/bar/baz.m3u8'
+                ],
+            },
+            lambda *args: {
+                ('000-000-000', None): True,
+                ('12as34', None): False,
+                ('foo', None): False
+            }[args],
+            (False, '000-000-000')
+        ),
+        (
+            {
+                'edx_video_id': '',
+                'youtube_id_1_0': '12as34',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm', 'foo/bar/baz.m3u8'
+                ],
+            },
+            lambda *args: {
+                ('12as34', None): True,
+                ('foo', None): False
+            }[args],
+            (True, '12as34'),
+        ),
+        (
+            {
+                'edx_video_id': '',
+                'youtube_id_1_0': '12as34',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm', 'foo/bar/baz.m3u8'
+                ],
+            },
+            lambda *args: {
+                ('12as34', None): False,
+                ('foo', None): True
+            }[args],
+            (True, 'foo'),
+        ),
+        (
+            {
+                'edx_video_id': '',
+                'youtube_id_1_0': '',
+                'html5_sources': [
+                    'www.abc.com/foo.mp4', 'www.abc.com/bar.webm',
+                ],
+            },
+            lambda *args: {
+                ('foo', None): True
+            }[args],
+            (True, 'foo'),
+        )
+    )
+    @ddt.unpack
+    @patch('xmodule.video_module.transcripts_utils.edxval_api.is_transcript_available')
+    def test_get_video_with_transcript_available(self, video_attrs, side_effect, result, mock_is_transcript_available):
+        """
+        Verify that `get_video_with_transcript_available` works as expected.
+        """
+        video = Mock(**video_attrs)
+        mock_is_transcript_available.side_effect = side_effect
+        actual_result = transcripts_utils.get_video_with_transcript_available(video)
+        self.assertEqual(actual_result, result)
