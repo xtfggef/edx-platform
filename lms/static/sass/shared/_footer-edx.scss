@@ -43,6 +43,13 @@ footer#footer-edx-v3 {
     // display: inline-block;
     float: right;
   }
+  .app-links{
+    margin-top: 15px ;
+  }
+
+  .app-links li:nth-child(2){
+      float:right;
+    }
 
   .clear-margins{
     margin-top: 15px;
@@ -53,9 +60,7 @@ footer#footer-edx-v3 {
   .social{
     margin-top: 30px;
   }
-  .applinks{
-    margin-top: 10px ;
-  }
+
   .edx-footer-logo{
     display: inline-block;
   }
@@ -221,9 +226,7 @@ footer#footer-edx-v3 {
       height: 40px;
       max-width: 200px;
     }
-    //img:nth-of-type(2){
-    //  float:right;
-    //}
+
 
   }
 
