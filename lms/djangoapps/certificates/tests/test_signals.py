@@ -251,6 +251,7 @@ class LearnerTrackChangeCertsTest(ModuleStoreTestCase):
                 mock_generate_certificate_apply_async.assert_called_with(kwargs={
                     'student': unicode(self.user_one.id),
                     'course_key': unicode(self.course_one.id),
+                    'expected_verification_status': unicode('approved')
                 })
 
     def test_cert_generation_on_photo_verification_instructor_paced(self):
@@ -268,4 +269,5 @@ class LearnerTrackChangeCertsTest(ModuleStoreTestCase):
                 mock_generate_certificate_apply_async.assert_called_with(kwargs={
                     'student': unicode(self.user_two.id),
                     'course_key': unicode(self.course_two.id),
+                    'expected_verification_status': unicode('approved')
                 })
