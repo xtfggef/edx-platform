@@ -41,7 +41,9 @@ from xmodule.x_module import XModule, module_attr
 from xmodule.xml_module import deserialize_field, is_pointer_tag, name_to_pathname
 
 from .bumper_utils import bumperize
-from .transcripts_utils import Transcript, VideoTranscriptsMixin, get_html5_ids, get_video_transcript_data
+from .transcripts_utils import (
+    Transcript, VideoTranscriptsMixin, get_html5_ids, get_video_transcript_data, get_video_with_transcript_available
+)
 from .video_handlers import VideoStudentViewHandlers, VideoStudioViewHandlers
 from .video_utils import create_youtube_string, format_xml_exception_message, get_poster, rewrite_video_url
 from .video_xfields import VideoFields
@@ -658,11 +660,13 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
                 ele.set('src', self.transcripts[transcript_language])
                 xml.append(ele)
 
-        if self.edx_video_id and edxval_api:
+        if edxval_api:
+            external, video_id = get_video_with_transcript_available(self)
             try:
                 xml.append(edxval_api.export_to_xml(
-                    self.edx_video_id,
-                    unicode(self.runtime.course_id.for_branch(None)))
+                    video_id,
+                    unicode(self.runtime.course_id.for_branch(None))),
+                    external=external
                 )
             except edxval_api.ValVideoNotFoundError:
                 pass
@@ -863,16 +867,14 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
             field_data['download_track'] = True
 
         video_asset_elem = xml.find('video_asset')
-        if (
-                edxval_api and
-                video_asset_elem is not None and
-                'edx_video_id' in field_data
-        ):
+        if edxval_api and video_asset_elem is not None:
+            external, video_id = get_video_with_transcript_available(self)
             # Allow ValCannotCreateError to escape
             edxval_api.import_from_xml(
                 video_asset_elem,
-                field_data['edx_video_id'],
-                course_id=course_id
+                video_id,
+                course_id=course_id,
+                external=external
             )
 
         # load license if it exists
