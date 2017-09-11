@@ -37,3 +37,7 @@ def _enabled_and_self_paced(course):
 
 def can_show_certificate_available_date_field(course):
     return _enabled_and_self_paced(course)
+
+
+def can_show_view_certificate_button(enrollment):
+    return
