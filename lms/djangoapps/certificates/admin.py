@@ -29,10 +29,8 @@ class CertificateTemplateForm(forms.ModelForm):
         self.fields['organization_id'] = forms.TypedChoiceField(
             choices=org_choices, required=False, coerce=int, empty_value=None
         )
-        lang_choices = list(settings.CERTIFICATE_TEMPLATE_LANGUAGES)
-        lang_choices.insert(0, (None, '------------'))
-        self.fields['language'] = forms.TypedChoiceField(
-            choices=lang_choices, required=False, coerce=str, empty_value=None
+        self.fields['language'] = forms.ChoiceField(
+            choices=settings.CERTIFICATE_TEMPLATE_LANGUAGES, required=False
         )
 
     class Meta(object):

@@ -1002,7 +1002,7 @@ class CertificateTemplate(TimeStampedModel):
         max_length=2,
         blank=True,
         null=True,
-        help_text=u'Optional. Only certificates for courses in the selected language will be rendered using this template.<br />*Note* Course language is determined by the first two letters of the language code.'
+        help_text=u'Only certificates for courses in the selected language will be rendered using this template.<br />*Note* Course language is determined by the first two letters of the language code.'
     )
 
     def __unicode__(self):
