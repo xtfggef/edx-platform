@@ -41,12 +41,12 @@ class ConsentApiClient(object):
     Class for producing an Enterprise Consent service API client
     """
 
-    def __init__(self):
+    def __init__(self, user):
         """
-        Initialize a consent service API client, authenticated using the Enterprise worker username.
+        Initialize an authenticated Consent service API client by using the
+        provided user.
         """
-        self.user = User.objects.get(username=settings.ENTERPRISE_SERVICE_WORKER_USERNAME)
-        jwt = JwtBuilder(self.user).build_token([])
+        jwt = JwtBuilder(user).build_token([])
         url = configuration_helpers.get_value('ENTERPRISE_CONSENT_API_URL', settings.ENTERPRISE_CONSENT_API_URL)
         self.client = EdxRestApiClient(
             url,
@@ -97,13 +97,12 @@ class EnterpriseApiClient(object):
     Class for producing an Enterprise service API client.
     """
 
-    def __init__(self, user=None):
+    def __init__(self, user):
         """
         Initialize an authenticated Enterprise service API client by using the
-        provided user or Enterprise worker user by default.
+        provided user.
         """
-        self.user = user or User.objects.get(username=settings.ENTERPRISE_SERVICE_WORKER_USERNAME)
-        jwt = JwtBuilder(self.user).build_token([])
+        jwt = JwtBuilder(user).build_token([])
         self.client = EdxRestApiClient(
             configuration_helpers.get_value('ENTERPRISE_API_URL', settings.ENTERPRISE_API_URL),
             jwt=jwt
@@ -287,7 +286,7 @@ def enterprise_customer_for_request(request):
     if not enterprise_enabled():
         return None
 
-    ec = None
+    enterprise_customer = None
     sso_provider_id = request.GET.get('tpa_hint')
 
     running_pipeline = get_partial_pipeline(request)
@@ -304,34 +303,38 @@ def enterprise_customer_for_request(request):
             # Check if there's an Enterprise Customer such that the linked SSO provider
             # has an ID equal to the ID we got from the running pipeline or from the
             # request tpa_hint URL parameter.
-            ec_uuid = EnterpriseCustomer.objects.get(
+            enterprise_customer_uuid = EnterpriseCustomer.objects.get(
                 enterprise_customer_identity_provider__provider_id=sso_provider_id
             ).uuid
         except EnterpriseCustomer.DoesNotExist:
             # If there is not an EnterpriseCustomer linked to this SSO provider, set
             # the UUID variable to be null.
-            ec_uuid = None
+            enterprise_customer_uuid = None
     else:
         # Check if we got an Enterprise UUID passed directly as either a query
         # parameter, or as a value in the Enterprise cookie.
-        ec_uuid = request.GET.get('enterprise_customer') or request.COOKIES.get(settings.ENTERPRISE_CUSTOMER_COOKIE_NAME)
+        enterprise_customer_uuid = request.GET.get('enterprise_customer') or request.COOKIES.get(
+            settings.ENTERPRISE_CUSTOMER_COOKIE_NAME
+        )
 
-    if not ec_uuid and request.user.is_authenticated():
+    if not enterprise_customer_uuid and request.user.is_authenticated():
         # If there's no way to get an Enterprise UUID for the request, check to see
         # if there's already an Enterprise attached to the requesting user on the backend.
         learner_data = get_enterprise_learner_data(request.site, request.user)
         if learner_data:
-            ec_uuid = learner_data[0]['enterprise_customer']['uuid']
-    if ec_uuid:
+            enterprise_customer_uuid = learner_data[0]['enterprise_customer']['uuid']
+    if enterprise_customer_uuid:
         # If we were able to obtain an EnterpriseCustomer UUID, go ahead
         # and use it to attempt to retrieve EnterpriseCustomer details
         # from the EnterpriseCustomer API.
         try:
-            ec = EnterpriseApiClient().get_enterprise_customer(ec_uuid)
+            enterprise_customer = EnterpriseApiClient(user=request.user).get_enterprise_customer(
+                enterprise_customer_uuid
+            )
         except HttpNotFoundError:
-            ec = None
+            enterprise_customer = None
 
-    return ec
+    return enterprise_customer
 
 
 def consent_needed_for_course(request, user, course_id, enrollment_exists=False):
@@ -351,7 +354,7 @@ def consent_needed_for_course(request, user, course_id, enrollment_exists=False)
     if not enterprise_learner_details:
         consent_needed = False
     else:
-        client = ConsentApiClient()
+        client = ConsentApiClient(user=request.user)
         consent_needed = any(
             client.consent_required(
                 username=user.username,
@@ -419,7 +422,7 @@ def get_enterprise_learner_data(site, user):
     if not enterprise_enabled():
         return None
 
-    enterprise_learner_data = EnterpriseApiClient().fetch_enterprise_learner_data(site=site, user=user)
+    enterprise_learner_data = EnterpriseApiClient(user=user).fetch_enterprise_learner_data(site=site, user=user)
     if enterprise_learner_data:
         return enterprise_learner_data['results']
 
@@ -454,7 +457,7 @@ def get_dashboard_consent_notification(request, user, course_enrollments):
                 enrollment = course_enrollment
                 break
 
-        client = ConsentApiClient()
+        client = ConsentApiClient(user=request.user)
         consent_needed = client.consent_required(
             enterprise_customer_uuid=enterprise_customer['uuid'],
             username=user.username,

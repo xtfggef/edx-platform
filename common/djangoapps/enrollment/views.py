@@ -598,8 +598,8 @@ class EnrollmentListView(APIView, ApiKeyPermissionMixIn):
             enterprise_course_consent = request.data.get('enterprise_course_consent')
             explicit_linked_enterprise = request.data.get('linked_enterprise_customer')
             if (enterprise_course_consent or explicit_linked_enterprise) and has_api_key_permissions and enterprise_enabled():
-                enterprise_api_client = EnterpriseApiClient()
-                consent_client = ConsentApiClient()
+                enterprise_api_client = EnterpriseApiClient(user=request.user)
+                consent_client = ConsentApiClient(user=request.user)
                 # We received an explicitly-linked EnterpriseCustomer for the enrollment
                 if explicit_linked_enterprise is not None:
                     try:

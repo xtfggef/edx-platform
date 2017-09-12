@@ -27,9 +27,6 @@ from openedx.features.enterprise_support.tests.mixins.enterprise import Enterpri
 from student.tests.factories import UserFactory
 
 
-ENTERPRISE_SERVICE_WORKER_USERNAME = 'enterprise_worker'
-
-
 class MockEnrollment(mock.MagicMock):
     """
     Mock object for an enrollment which has a consistent string representation
@@ -48,29 +45,14 @@ class TestEnterpriseApi(EnterpriseServiceMockMixin, TestCase):
     """
     @classmethod
     def setUpTestData(cls):
-        UserFactory.create(
-            username=ENTERPRISE_SERVICE_WORKER_USERNAME,
+        cls.user = UserFactory.create(
+            username='enterprise-test-user',
             email='ent_worker@example.com',
             password='password123',
         )
         super(TestEnterpriseApi, cls).setUpTestData()
 
     @httpretty.activate
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME=ENTERPRISE_SERVICE_WORKER_USERNAME)
-    @mock.patch('openedx.core.lib.token_utils.JwtBuilder.build_token')
-    def test_enterprise_api_client_without_user(self, mock_build_token):
-        """
-        Verify that enterprise API client uses enterprise service user by
-        default to authenticate and access enterprise API.
-        """
-        mock_build_token.return_value = 'test-token'
-        enterprise_api_client = EnterpriseApiClient()
-        self.assertEqual(enterprise_api_client.user, User.objects.get(username=ENTERPRISE_SERVICE_WORKER_USERNAME))
-        # pylint: disable=protected-access
-        self.assertEqual(enterprise_api_client.client._store['session'].auth.token, 'test-token')
-
-    @httpretty.activate
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME=ENTERPRISE_SERVICE_WORKER_USERNAME)
     @mock.patch('openedx.core.lib.token_utils.JwtBuilder.build_token')
     def test_enterprise_api_client_with_user(self, mock_build_token):
         """
@@ -84,18 +66,16 @@ class TestEnterpriseApi(EnterpriseServiceMockMixin, TestCase):
         )
         mock_build_token.return_value = 'test-token'
         enterprise_api_client = EnterpriseApiClient(dummy_enterprise_user)
-        self.assertEqual(enterprise_api_client.user, dummy_enterprise_user)
         # pylint: disable=protected-access
         self.assertEqual(enterprise_api_client.client._store['session'].auth.token, 'test-token')
 
     @httpretty.activate
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME=ENTERPRISE_SERVICE_WORKER_USERNAME)
     def test_consent_needed_for_course(self):
         user = mock.MagicMock(
             username='janedoe',
             is_authenticated=lambda: True,
         )
-        request = mock.MagicMock(session={})
+        request = mock.MagicMock(session={}, user=user)
         self.mock_enterprise_learner_api()
         self.mock_consent_missing(user.username, 'fake-course', 'cf246b88-d5f6-4908-a522-fc307e0b0c59')
         self.assertTrue(consent_needed_for_course(request, user, 'fake-course'))
@@ -111,63 +91,65 @@ class TestEnterpriseApi(EnterpriseServiceMockMixin, TestCase):
     @mock.patch('openedx.features.enterprise_support.api.EnterpriseCustomer')
     @mock.patch('openedx.features.enterprise_support.api.get_partial_pipeline')
     @mock.patch('openedx.features.enterprise_support.api.Registry')
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME=ENTERPRISE_SERVICE_WORKER_USERNAME)
     def test_enterprise_customer_for_request(
             self,
             mock_registry,
             mock_partial,
-            mock_ec_model,
+            mock_enterprise_customer_model,
             mock_get_el_data
     ):
-        def mock_get_ec(**kwargs):
+        def mock_get_enterprise_customer(**kwargs):
             uuid = kwargs.get('enterprise_customer_identity_provider__provider_id')
             if uuid:
-                return mock.MagicMock(uuid=uuid)
+                return mock.MagicMock(uuid=uuid, user=self.user)
             raise Exception
 
-        mock_ec_model.objects.get.side_effect = mock_get_ec
-        mock_ec_model.DoesNotExist = Exception
+        dummy_request = mock.MagicMock(session={}, user=self.user)
+        mock_enterprise_customer_model.objects.get.side_effect = mock_get_enterprise_customer
+        mock_enterprise_customer_model.DoesNotExist = Exception
 
         mock_partial.return_value = True
         mock_registry.get_from_pipeline.return_value.provider_id = 'real-ent-uuid'
 
-        self.mock_get_enterprise_customer('real-ent-uuid', {"real": "enterprisecustomer"}, 200)
+        self.mock_get_enterprise_customer('real-ent-uuid', {'real': 'enterprisecustomer'}, 200)
 
-        ec = enterprise_customer_for_request(mock.MagicMock())
+        enterprise_customer = enterprise_customer_for_request(dummy_request)
 
-        self.assertEqual(ec, {"real": "enterprisecustomer"})
+        self.assertEqual(enterprise_customer, {'real': 'enterprisecustomer'})
 
         httpretty.reset()
 
-        self.mock_get_enterprise_customer('real-ent-uuid', {"detail": "Not found."}, 404)
+        self.mock_get_enterprise_customer('real-ent-uuid', {'detail': 'Not found.'}, 404)
 
-        ec = enterprise_customer_for_request(mock.MagicMock())
+        enterprise_customer = enterprise_customer_for_request(dummy_request)
 
-        self.assertIsNone(ec)
+        self.assertIsNone(enterprise_customer)
 
         mock_registry.get_from_pipeline.return_value.provider_id = None
 
         httpretty.reset()
 
-        self.mock_get_enterprise_customer('real-ent-uuid', {"real": "enterprisecustomer"}, 200)
+        self.mock_get_enterprise_customer('real-ent-uuid', {'real': 'enterprisecustomer'}, 200)
 
-        ec = enterprise_customer_for_request(mock.MagicMock(GET={"enterprise_customer": 'real-ent-uuid'}))
-
-        self.assertEqual(ec, {"real": "enterprisecustomer"})
-
-        ec = enterprise_customer_for_request(
-            mock.MagicMock(GET={}, COOKIES={settings.ENTERPRISE_CUSTOMER_COOKIE_NAME: 'real-ent-uuid'})
+        enterprise_customer = enterprise_customer_for_request(
+            mock.MagicMock(GET={'enterprise_customer': 'real-ent-uuid'}, user=self.user)
         )
 
-        self.assertEqual(ec, {"real": "enterprisecustomer"})
+        self.assertEqual(enterprise_customer, {'real': 'enterprisecustomer'})
+
+        enterprise_customer = enterprise_customer_for_request(
+            mock.MagicMock(GET={}, COOKIES={settings.ENTERPRISE_CUSTOMER_COOKIE_NAME: 'real-ent-uuid'}, user=self.user)
+        )
+
+        self.assertEqual(enterprise_customer, {'real': 'enterprisecustomer'})
 
         mock_get_el_data.return_value = [{'enterprise_customer': {'uuid': 'real-ent-uuid'}}]
 
-        ec = enterprise_customer_for_request(
-            mock.MagicMock(GET={}, COOKIES={}, user=mock.MagicMock(is_authenticated=lambda: True), site=1)
+        enterprise_customer = enterprise_customer_for_request(
+            mock.MagicMock(GET={}, COOKIES={}, user=self.user, site=1)
         )
 
-        self.assertEqual(ec, {"real": "enterprisecustomer"})
+        self.assertEqual(enterprise_customer, {'real': 'enterprisecustomer'})
 
     def check_data_sharing_consent(self, consent_required=False, consent_url=None):
         """
