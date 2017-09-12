@@ -1,5 +1,5 @@
 <!--Adding bootstrap  temporarily-->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">-->
 
 ## mako
 <%!
@@ -14,7 +14,7 @@
 
 
 ## WARNING: These files are specific to edx.org and are not used in installations outside of that domain. Open edX users will want to use the file "footer.html" for any changes or overrides.
-<footer id="footer-edx-v3"  class="no-padding" role="contentinfo" aria-label="${_("Page Footer")}"
+<footer id="footer-edx-v3" role="contentinfo" aria-label="${_("Page Footer")}"
   ## When rendering the footer through the branding API,
   ## the direction may not be set on the parent element,
   ## so we set it here.
@@ -22,6 +22,9 @@
     dir=${bidi}
   % endif
 >
+    <style scoped>
+        @import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css");
+    </style>
 <div class="container-fluid">
     <div class="row"><!-- row -->
         <div class="col-lg-3 col-md-2">
@@ -30,7 +33,7 @@
                     <img alt="${_('edX Home Page')}" src="${footer['logo_image']}">
                   </a>
               </div>
-              
+
                     % if context.get('include_language_selector', footer_language_selector_is_enabled()):
                       <%include file="${static.get_template_path('widgets/footer-language-selector.html')}"/>
                     % endif
@@ -43,7 +46,7 @@
                     <h3>edx</h3>
                     <ul>
                         % for link in footer["edx_links"]:
-                        <li class=" ">
+                        <li>
                           <a href="${link['url']}">${link['title']}</a>
                         </li>
                         % endfor
@@ -58,7 +61,7 @@
                     <h3>More Information</h3>
                     <ul>
                         % for link in footer["more_info_links"]:
-                        <li class=" ">
+                        <li>
                           <a href="${link['url']}">${link['title']}</a>
                         </li>
                         % endfor
@@ -70,10 +73,10 @@
             <ul class="list-unstyled clear-margins">
                 <li class="widget-container widget_nav_menu"><!-- widgets list -->
 
-                    <h3 class="">Connect</h3>
+                    <h3>Connect</h3>
                     <ul>
                         % for link in footer["connect_links"]:
-                        <li class=" ">
+                        <li>
                           <a href="${link['url']}">${link['title']}</a>
                         </li>
                         % endfor
@@ -99,7 +102,7 @@
 
           <ul class="list-inline list-unstyled social">
                         % for link in footer['social_links']:
-                        <li class=" ">
+                        <li>
                             <a href="${link['url']}" class="social-links external" title="${link['title']}" rel="noreferrer">
                                 <span class="icon fa ${link['icon-class']}" aria-hidden="true"></span>
                                 <span class="sr">${link['action']}</span>
@@ -110,7 +113,7 @@
 
           <ul class="list-inline list-unstyled app-links">
             % for link in footer['mobile_links']:
-            <li class=" ">
+            <li>
                 <a href="${link['url']}" class="app-link external">
                     <img alt="${link['title']}" src="${link['image']}">
                 </a>

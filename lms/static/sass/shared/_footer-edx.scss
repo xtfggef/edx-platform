@@ -48,7 +48,7 @@ footer#footer-edx-v3 {
   }
 
   .app-links li:nth-child(2){
-      float:right;
+      //float:right;
     }
 
   .clear-margins{
@@ -59,6 +59,10 @@ footer#footer-edx-v3 {
 
   .social{
     margin-top: 30px;
+  }
+  ul.social li{
+    display: table-cell;
+    width: 1%;
   }
 
   .edx-footer-logo{
@@ -193,8 +197,6 @@ footer#footer-edx-v3 {
     @include margin(0, -7px, 10px, 0px);
     @include font-size(40);
     @include line-height(28);
-    // width: 35px;
-    // height: 30px;
     line-height: 1;
     position: relative;
     display: inline;
@@ -223,7 +225,7 @@ footer#footer-edx-v3 {
     }
 
     img {
-      height: 40px;
+      height: 43px;
       max-width: 200px;
     }
 
