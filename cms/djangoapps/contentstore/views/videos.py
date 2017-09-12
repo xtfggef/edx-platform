@@ -130,7 +130,7 @@ class StatusDisplayStrings(object):
         "invalid_token": _INVALID_TOKEN,
         "imported": _IMPORTED,
         "transcription_in_progress": _TRANSCRIPTION_IN_PROGRESS,
-        "transcription_ready": _TRANSCRIPT_READY,
+        "transcript_ready": _TRANSCRIPT_READY,
     }
 
     @staticmethod
