@@ -43,10 +43,11 @@ define([
                 this.postUrl = options.postUrl;
                 this.activeTranscriptPreferences = options.activeTranscriptPreferences;
                 this.videoTranscriptSettings = options.videoTranscriptSettings;
+                this.isVideoTranscriptEnabled = options.isVideoTranscriptEnabled;
                 this.videoSupportedFileFormats = options.videoSupportedFileFormats;
                 this.videoUploadMaxFileSizeInGB = options.videoUploadMaxFileSizeInGB;
                 this.onFileUploadDone = options.onFileUploadDone;
-                if (options.courseVideoSettingsButton) {
+                if (this.isVideoTranscriptEnabled && options.courseVideoSettingsButton) {
                     options.courseVideoSettingsButton.click(this.showCourseVideoSettingsView.bind(this));
                 }
 
@@ -62,16 +63,19 @@ define([
                         supportedVideoTypes: this.videoSupportedFileFormats.join(', ')
                     }
                 );
-                this.listenTo(
-                    Backbone,
-                    'coursevideosettings:syncActiveTranscriptPreferences',
-                    this.syncActiveTranscriptPreferences
-                );
-                this.listenTo(
-                    Backbone,
-                    'coursevideosettings:destroyCourseVideoSettingsView',
-                    this.destroyCourseVideoSettingsView
-                );
+                if (this.isVideoTranscriptEnabled) {
+                    this.listenTo(
+                        Backbone,
+                        'coursevideosettings:syncActiveTranscriptPreferences',
+                        this.syncActiveTranscriptPreferences
+                    );
+                    this.listenTo(
+                        Backbone,
+                        'coursevideosettings:destroyCourseVideoSettingsView',
+                        this.destroyCourseVideoSettingsView
+                    );
+                }
+
             },
 
             syncActiveTranscriptPreferences: function(activeTranscriptPreferences) {
@@ -79,12 +83,14 @@ define([
             },
 
             showCourseVideoSettingsView: function(event) {
-                this.courseVideoSettingsView = new CourseVideoSettingsView({
-                    activeTranscriptPreferences: this.activeTranscriptPreferences,
-                    videoTranscriptSettings: this.videoTranscriptSettings
-                });
-                this.courseVideoSettingsView.render();
-                event.stopPropagation();
+                if (this.isVideoTranscriptEnabled) {
+                    this.courseVideoSettingsView = new CourseVideoSettingsView({
+                        activeTranscriptPreferences: this.activeTranscriptPreferences,
+                        videoTranscriptSettings: this.videoTranscriptSettings
+                    });
+                    this.courseVideoSettingsView.render();
+                    event.stopPropagation();
+                }
             },
 
             destroyCourseVideoSettingsView: function() {

@@ -33,6 +33,7 @@ from edxval.api import (
     remove_transcript_preferences,
 )
 from opaque_keys.edx.keys import CourseKey
+from openedx.core.djangoapps.video_config.models import VideoTranscriptEnabledFlag
 from openedx.core.djangoapps.waffle_utils import WaffleSwitchNamespace
 
 from contentstore.models import VideoUploadConfig
@@ -550,6 +551,7 @@ def videos_index_html(course):
     """
     Returns an HTML page to display previous video uploads and allow new ones
     """
+    is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(unicode(course.id))
     context = {
         'context_course': course,
         'image_upload_url': reverse_course_url('video_images_handler', unicode(course.id)),
@@ -567,19 +569,21 @@ def videos_index_html(course):
             'max_width': settings.VIDEO_IMAGE_MAX_WIDTH,
             'max_height': settings.VIDEO_IMAGE_MAX_HEIGHT,
             'supported_file_formats': settings.VIDEO_IMAGE_SUPPORTED_FILE_FORMATS
-        }
+        },
+        'is_video_transcript_enabled': is_video_transcript_enabled,
+        'video_transcript_settings': None,
+        'active_transcript_preferences': None
     }
 
-    context.update({
-        'video_transcript_settings': {
+    if is_video_transcript_enabled:
+        context['video_transcript_settings'] =  {
             'transcript_preferences_handler_url': reverse_course_url(
                 'transcript_preferences_handler',
                 unicode(course.id)
             ),
             'transcription_plans': get_3rd_party_transcription_plans(),
-        },
-        'active_transcript_preferences': get_transcript_preferences(unicode(course.id))
-    })
+        }
+        context['active_transcript_preferences'] = get_transcript_preferences(unicode(course.id))
 
     return render_to_response('videos_index.html', context)
 
