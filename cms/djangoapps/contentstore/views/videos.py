@@ -340,6 +340,10 @@ def transcript_preferences_handler(request, course_key_string):
 
     Returns: valid json response or 400 with error message
     """
+    is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(course_key_string)
+    if not is_video_transcript_enabled:
+        return HttpResponseNotFound()
+
     if request.method == 'POST':
         data = request.json
         provider = data.get('provider')
@@ -666,9 +670,11 @@ def videos_post(course, request):
             ('course_key', unicode(course.id)),
         ]
 
-        transcript_preferences = get_transcript_preferences(unicode(course.id))
-        if transcript_preferences is not None:
-            metadata_list.append(('transcript_preferences', json.dumps(transcript_preferences)))
+        is_video_transcript_enabled = VideoTranscriptEnabledFlag.feature_enabled(unicode(course.id))
+        if is_video_transcript_enabled:
+            transcript_preferences = get_transcript_preferences(unicode(course.id))
+            if transcript_preferences is not None:
+                metadata_list.append(('transcript_preferences', json.dumps(transcript_preferences)))
 
         for metadata_name, value in metadata_list:
             key.set_metadata(metadata_name, value)
