@@ -99,6 +99,11 @@ class CertificateStatuses(object):
         audit_notpassing: "audit not passing states",
     }
 
+    ALL_STATUSES = (
+        deleted, deleting, downloadable, error, generating, notpassing, restricted, unavailable, auditing,
+        audit_passing, audit_notpassing, unverified, invalidated, requesting
+    )
+
     PASSED_STATUSES = (downloadable, generating)
 
     @classmethod

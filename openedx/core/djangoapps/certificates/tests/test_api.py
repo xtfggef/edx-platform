@@ -1,19 +1,26 @@
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 import itertools
 from unittest import TestCase
 
 import ddt
+from freezegun import freeze_time
+import pytz
 import waffle
 
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
 # this is really lms.djangoapps.certificates, but we can't refer to it like
 # that here without raising a RuntimeError about Conflicting models
-from certificates.models import CertificateStatuses, GeneratedCertificate
+from certificates.models import CertificateStatuses
 from course_modes.models import CourseMode
 from openedx.core.djangoapps.certificates import api
 from openedx.core.djangoapps.certificates.config import waffle as certs_waffle
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
+
+
+def days(n):
+    return timedelta(days=n)
 
 
 @contextmanager
@@ -28,11 +35,16 @@ def configure_waffle_namespace(self_paced_enabled, instructor_paced_enabled):
 class CertificatesApiBaseTestCase(TestCase):
     def setUp(self):
         super(CertificatesApiBaseTestCase, self).setUp()
-        self.course = CourseOverviewFactory.create()
+        self.course = CourseOverviewFactory.create(
+            start = datetime(2017, 1, 1, tzinfo=pytz.UTC),
+            end = datetime(2017, 1, 31, tzinfo=pytz.UTC),
+            certificate_available_date=None
+        )
 
     def tearDown(self):
         super(CertificatesApiBaseTestCase, self).tearDown()
         self.course.self_paced = False
+        self.course.certificate_available_date = None
 
 
 @ddt.ddt
@@ -71,6 +83,11 @@ class VisibilityTestCase(CertificatesApiBaseTestCase):
             is_active=True,
             mode='audit',
         )
+        self.certificate = GeneratedCertificateFactory.create(
+            user=self.user,
+            course_id=self.course.id,
+            grade='1.0',
+        )
 
     @ddt.data(
         (True, False, True, False),  # feature enabled and self-paced should return False
@@ -87,34 +104,67 @@ class VisibilityTestCase(CertificatesApiBaseTestCase):
             self.assertEqual(expected_value, api.can_show_certificate_available_date_field(self.course))
 
     @ddt.data(
-        (CourseMode.HONOR, CertificateStatuses.downloadable, True, True),
-        (CourseMode.VERIFIED, CertificateStatuses.downloadable, True, True),
-        (CourseMode.HONOR, CertificateStatuses.unverified, True, False),
-        (CourseMode.VERIFIED, CertificateStatuses.unverified, True, False),
-        (CourseMode.AUDIT, CertificateStatuses.auditing, True, False),
-        (CourseMode.HONOR, CertificateStatuses.downloadable, False, False),
-        (CourseMode.VERIFIED, CertificateStatuses.downloadable, False, False),
-        (CourseMode.HONOR, CertificateStatuses.unverified, False, False),
-        (CourseMode.VERIFIED, CertificateStatuses.unverified, False, False),
-        (CourseMode.AUDIT, CertificateStatuses.auditing, False, False),
+        (CourseMode.CREDIT_MODE, True, True),
+        (CourseMode.VERIFIED, True, True),
+        (CourseMode.AUDIT, True, False),
+        (CourseMode.CREDIT_MODE, False, True),
+        (CourseMode.VERIFIED, False, True),
+        (CourseMode.AUDIT, False, False),
     )
     @ddt.unpack
-    def test_can_show_view_certificate_button_feature_enabled_toggle_pacing(
-            self, enrollment_mode, certificate_status, self_paced, expected_value
+    def test_can_show_view_certificate_button_self_paced(
+            self, enrollment_mode, feature_enabled, expected_value_if_downloadable
     ):
         self.enrollment.mode = enrollment_mode
         self.enrollment.save()
 
-        self.course.self_paced = self_paced
+        self.course.self_paced = True
         self.course.save()
 
-        certificate = GeneratedCertificateFactory.create(
-            user=self.user,
-            course_id=self.course.id,
-            grade='1.0',
-            status=certificate_status,
-            mode=enrollment_mode,
-        )
+        for certificate_status in CertificateStatuses.ALL_STATUSES:
+            self.certificate.mode = enrollment_mode
+            self.certificate.status = certificate_status
 
-        with configure_waffle_namespace(True, True):
-            self.assertEquals(expected_value, api.can_show_view_certificate_button(self.user, self.course))
+            expected_to_view = (
+                expected_value_if_downloadable and
+                (certificate_status == CertificateStatuses.downloadable)
+            )
+            with configure_waffle_namespace(feature_enabled, feature_enabled):
+                self.assertEquals(expected_to_view, api.can_show_view_certificate_button(self.course, self.certificate))
+
+    @ddt.data(
+        # null certificate_available_date, depend only on cert being valid
+        (CourseMode.CREDIT_MODE, True, None, days(0), True),
+        (CourseMode.VERIFIED, True, None, days(0), True),
+        (CourseMode.AUDIT, True, None, days(0), False),
+        # feature not enabled, so only depend on course having ended
+        (CourseMode.CREDIT_MODE, False, None, days(1), True),
+        (CourseMode.VERIFIED, False, None, days(1), True),
+        (CourseMode.AUDIT, False, None, days(1), False),
+    )
+    @ddt.unpack
+    def test_can_show_view_certificate_button_instructor_paced_course_ended(
+            self, enrollment_mode, feature_enabled, cert_avail_delta, current_time_delta, expected_value_if_downloadable
+    ):
+        self.enrollment.mode = enrollment_mode
+        self.enrollment.save()
+
+        self.course.self_paced = False
+        if cert_avail_delta:
+            self.course.certificate_available_date = self.course.end + cert_avail_delta
+        self.course.save()
+
+        for certificate_status in CertificateStatuses.ALL_STATUSES:
+            self.certificate.mode = enrollment_mode
+            self.certificate.status = certificate_status
+
+            expected_to_view = (
+                expected_value_if_downloadable and
+                (certificate_status == CertificateStatuses.downloadable)
+            )
+            with configure_waffle_namespace(feature_enabled, feature_enabled):
+                with freeze_time(self.course.end + current_time_delta):
+                    self.assertEquals(
+                        expected_to_view,
+                        api.can_show_view_certificate_button(self.course, self.certificate)
+                    )
