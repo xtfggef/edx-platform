@@ -597,6 +597,10 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
             ScopeIds(None, block_type, definition_id, usage_id),
             field_data,
         )
+
+        # update val with with info extracted from `xml_object`
+        video.import_video_info_into_val(xml_object, getattr(id_generator, 'target_course_id', None))
+
         return video
 
     def definition_to_xml(self, resource_fs):
@@ -663,10 +667,12 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
         if edxval_api:
             external, video_id = get_video_with_transcript_available(self)
             try:
-                xml.append(edxval_api.export_to_xml(
-                    video_id,
-                    unicode(self.runtime.course_id.for_branch(None))),
-                    external=external
+                xml.append(
+                    edxval_api.export_to_xml(
+                        video_id,
+                        unicode(self.runtime.course_id.for_branch(None)),
+                        external=external
+                    )
                 )
             except edxval_api.ValVideoNotFoundError:
                 pass
@@ -866,21 +872,28 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
         if 'download_track' not in field_data and track is not None:
             field_data['download_track'] = True
 
+        # load license if it exists
+        field_data = LicenseMixin.parse_license_from_xml(field_data, xml)
+
+        return field_data
+
+    def import_video_info_into_val(self, xml, course_id):
+        """
+        Import parsed info from `xml` into edxval.
+
+        Arguments:
+            xml (lxml object): xml representation of video to be imported
+            course_id (str): course id
+        """
         video_asset_elem = xml.find('video_asset')
         if edxval_api and video_asset_elem is not None:
             external, video_id = get_video_with_transcript_available(self)
-            # Allow ValCannotCreateError to escape
             edxval_api.import_from_xml(
                 video_asset_elem,
                 video_id,
                 course_id=course_id,
                 external=external
             )
-
-        # load license if it exists
-        field_data = LicenseMixin.parse_license_from_xml(field_data, xml)
-
-        return field_data
 
     def index_dictionary(self):
         xblock_body = super(VideoDescriptor, self).index_dictionary()

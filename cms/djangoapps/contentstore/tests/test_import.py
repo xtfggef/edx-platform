@@ -273,14 +273,17 @@ class ContentStoreImportTest(SignalDisconnectTestMixin, ModuleStoreTestCase):
 
         self.assertEqual(remapped_verticals, split_test_module.group_id_to_child)
 
+    @patch('xmodule.video_module.video_module.get_video_with_transcript_available')
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
-    def test_video_components_present_while_import(self, store):
+    def test_video_components_present_while_import(self, store, mock_get_video_with_transcript_available):
         """
         Test that video components with same edx_video_id are present while re-importing
         """
         with modulestore().default_store(store):
             module_store = modulestore()
             course_id = module_store.make_course_key('edX', 'test_import_course', '2012_Fall')
+
+            mock_get_video_with_transcript_available.return_value = (False, 'dummy_edx_video_id')
 
             # Import first time
             __, __, course = self.load_test_import_course(target_id=course_id, module_store=module_store)
