@@ -28,7 +28,7 @@ define([
                 videoImageSettings: videoImageSettings,
                 activeTranscriptPreferences: activeTranscriptPreferences,
                 videoTranscriptSettings: videoTranscriptSettings,
-                isVideoTranscriptEnabled, isVideoTranscriptEnabled,
+                isVideoTranscriptEnabled: isVideoTranscriptEnabled,
                 onFileUploadDone: function(activeVideos) {
                     $.ajax({
                         url: videoHandlerUrl,
