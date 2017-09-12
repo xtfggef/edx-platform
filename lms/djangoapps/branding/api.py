@@ -170,7 +170,6 @@ def _footer_social_links():
 
 def _footer_connect_links():
     """Return the connect links to display in the footer. """
-    platform_name = configuration_helpers.get_value('platform_name', settings.PLATFORM_NAME)
     return [
         {
             "name": link_name,
@@ -246,6 +245,7 @@ def _footer_legal_links():
 def _footer_edx_links():
     """Return the edx links to display in the footer. """
     platform_name = configuration_helpers.get_value('platform_name', settings.PLATFORM_NAME)
+
     return [
         {
             "name": link_name,
@@ -256,7 +256,7 @@ def _footer_edx_links():
             ("about", marketing_link("ABOUT"), _("About")),
             ("enterprise", marketing_link("ENTERPRISE"),
              _("{platform_name} for Business").format(platform_name=platform_name)),
-            ("openedx", _footer_openedx_link(), _("Open edx")),
+            ("openedx", _footer_openedx_link()["url"], _("Open edx")),
             ("careers", marketing_link("CAREERS"), _("Careers")),
             ("news", marketing_link("NEWS"), _("News")),
         ]
