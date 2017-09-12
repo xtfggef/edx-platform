@@ -842,12 +842,10 @@ class ExampleCertificate(TimeStampedModel):
 class CertificateGenerationCourseSetting(TimeStampedModel):
     """Enable or disable certificate generation for a particular course.
 
-    DEPRECATED: 'enabled' controls whether students are allowed to "self-generate"
+    'self_generation_enabled' controls whether students are allowed to "self-generate"
     certificates for a course.  It does NOT prevent us from
     batch-generating certificates for a course using management
     commands.
-
-    'self_generation_enabled' should be used in place of 'enabled'
 
     In general, we should only enable self-generated certificates
     for a course once we successfully generate example certificates
@@ -860,10 +858,6 @@ class CertificateGenerationCourseSetting(TimeStampedModel):
 
     """
     course_key = CourseKeyField(max_length=255, db_index=True)
-    enabled = models.BooleanField(default=False)  # deprecated
-    # note: accessor methods below for self_generation_enabled
-    # should be changed when the 'enabled' field is removed
-    # currently they include references to 'enabled' for backwards compatability
 
     self_generation_enabled = models.BooleanField(default=False)
     language_specific_templates_enabled = models.BooleanField(default=False)
@@ -888,8 +882,7 @@ class CertificateGenerationCourseSetting(TimeStampedModel):
         except cls.DoesNotExist:
             return False
         else:
-            return latest.self_generation_enabled or latest.enabled
-            # note: the 'or latest.enabled' should be removed when enabled field is removed
+            return latest.self_generation_enabled
 
     @classmethod
     def set_self_generatation_enabled_for_course(cls, course_key, is_enabled):
@@ -902,9 +895,7 @@ class CertificateGenerationCourseSetting(TimeStampedModel):
         """
         default = {
             'self_generation_enabled': is_enabled,
-            'enabled': is_enabled
         }
-        # Note: the 'enabled' in 'default' should be removed when 'enabled' is removed
 
         CertificateGenerationCourseSetting.objects.update_or_create(
             course_key=course_key,
