@@ -3,8 +3,11 @@ from unittest import TestCase
 import ddt
 from mock import patch
 from opaque_keys.edx.keys import CourseKey
+from nose.tools import assert_true
 
 from lms.djangoapps.certificates.tasks import generate_certificate
+from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
+from student.tests.factories import UserFactory
 
 
 @ddt.ddt
@@ -33,3 +36,14 @@ class GenerateUserCertificateTest(TestCase):
         with patch('lms.djangoapps.certificates.tasks.User.objects.get'):
             with self.assertRaisesRegexp(KeyError, missing_arg):
                 generate_certificate(**kwargs)
+
+    @patch('lms.djangoapps.certificates.tasks.generate_certificate.retry')
+    def test_cert_task_retry(self, mock_retry):
+        course_key = 'course-v1:edX+CS101+2017_T2'
+        student = UserFactory()
+
+        generate_certificate(student=student.id, course_key=course_key, expected_verification_status='approved')
+
+        SoftwareSecurePhotoVerificationFactory.create(user=student, status='approved')
+
+        self.assertTrue(mock_retry.called)
