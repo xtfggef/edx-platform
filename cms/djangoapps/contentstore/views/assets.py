@@ -66,7 +66,6 @@ def assets_handler(request, course_key_string=None, asset_key_string=None):
         raise PermissionDenied()
 
     response_format = _get_request_response_format(request)
-    #if response_format == 'json' or 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
     if _check_request_response_format_is_json(request, response_format):
         if request.method == 'GET':
             return _assets_json(request, course_key)
