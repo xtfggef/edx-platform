@@ -256,7 +256,6 @@ def _footer_edx_links():
             ("about", marketing_link("ABOUT"), _("About")),
             ("enterprise", marketing_link("ENTERPRISE"),
              _("{platform_name} for Business").format(platform_name=platform_name)),
-            ("affiliates", marketing_link("AFFILIATES"), _("Affiliates")),
             ("openedx", _footer_openedx_link(), _("Open edx")),
             ("careers", marketing_link("CAREERS"), _("Careers")),
             ("news", marketing_link("NEWS"), _("News")),
