@@ -1,25 +1,19 @@
 """
 APIs providing support for enterprise functionality.
 """
-import hashlib
 import logging
 from functools import wraps
 
-import six
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from edx_rest_api_client.client import EdxRestApiClient
-from requests.exceptions import ConnectionError, Timeout
 from slumber.exceptions import HttpClientError, HttpNotFoundError, HttpServerError, SlumberBaseException
 
-from openedx.core.djangoapps.catalog.models import CatalogIntegration
-from openedx.core.djangoapps.catalog.utils import create_catalog_api_client
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.token_utils import JwtBuilder
 from third_party_auth.pipeline import get as get_partial_pipeline
@@ -29,6 +23,7 @@ try:
     from enterprise.models import EnterpriseCourseEnrollment, EnterpriseCustomer
 except ImportError:
     pass
+
 
 CONSENT_FAILED_PARAMETER = 'consent_failed'
 LOGGER = logging.getLogger("edx.enterprise_helpers")
@@ -102,11 +97,12 @@ class EnterpriseApiClient(object):
     Class for producing an Enterprise service API client.
     """
 
-    def __init__(self):
+    def __init__(self, user=None):
         """
-        Initialize an Enterprise service API client, authenticated using the Enterprise worker username.
+        Initialize an authenticated Enterprise service API client by using the
+        provided user or Enterprise worker user by default.
         """
-        self.user = User.objects.get(username=settings.ENTERPRISE_SERVICE_WORKER_USERNAME)
+        self.user = user or User.objects.get(username=settings.ENTERPRISE_SERVICE_WORKER_USERNAME)
         jwt = JwtBuilder(self.user).build_token([])
         self.client = EdxRestApiClient(
             configuration_helpers.get_value('ENTERPRISE_API_URL', settings.ENTERPRISE_API_URL),
