@@ -54,7 +54,8 @@ define(
                     videoTranscriptSettings: {
                         transcript_preferences_handler_url: '',
                         transcription_plans: {}
-                    }
+                    },
+                    isVideoTranscriptEnabled: true
                 });
                 this.view.render();
                 jasmine.Ajax.install();
