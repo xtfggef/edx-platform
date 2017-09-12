@@ -7,6 +7,7 @@
   // --------------------
   .content-primary, .content-supplementary {
     @include box-sizing(border-box);
+
     float: left;
   }
 
@@ -24,7 +25,6 @@
   // header/masthead
   // --------------------
   .mast .page-header-super {
-
     .course-original-title-id, .course-original-title {
       display: block;
     }
@@ -38,9 +38,9 @@
   // course re-run form
   // --------------------
   .rerun-course {
-
     .row {
       @include clearfix();
+
       margin-bottom: ($baseline*0.75);
     }
 
@@ -55,6 +55,7 @@
 
     label {
       @extend %t-title7;
+
       display: block;
       font-weight: 700;
     }
@@ -73,6 +74,7 @@
 
     .rerun-course-name {
       @extend %t-title5;
+
       font-weight: 300;
     }
 
@@ -96,6 +98,7 @@
 
     .wrap-error {
       @include transition(opacity $tmg-f2 ease 0s);
+
       opacity: 0;
     }
 
@@ -112,14 +115,15 @@
 
     // NOTE: override for modern button styling until all buttons (in _forms.scss) can be converted
     .actions {
-
       .action-primary {
         @include blue-button;
+
         @extend %t-action2;
       }
 
       .action-secondary {
         @include grey-button;
+
         @extend %t-action2;
       }
     }

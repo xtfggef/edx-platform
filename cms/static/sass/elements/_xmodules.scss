@@ -54,6 +54,7 @@
         .collapse-setting {
           @extend %t-action3;
           @extend %t-strong;
+
           display: block;
           width: 100%;
           padding: ($baseline/2);
@@ -142,6 +143,7 @@
 
         .transcripts-message-status {
           @extend %t-strong;
+
           color: $green;
 
           &.status-error {
@@ -151,12 +153,14 @@
           .icon,
           [class*=" fa-"] {
             @extend %t-icon4;
+
             margin-right: ($baseline/4);
           }
         }
 
         .transcripts-error-message {
           @extend %t-copy-sub1;
+
           background: $red;
           color: $white;
           padding: ($baseline/3);
@@ -176,6 +180,7 @@
       .action {
         @extend %btn-primary-blue;
         @extend %t-action3;
+
         margin-bottom: ($baseline/2);
       }
     }
@@ -193,6 +198,7 @@
 
     .progress-bar {
       @extend %t-copy-lead1;
+
       display: block;
       height: 30px;
       margin: ($baseline/2) 0;
@@ -256,6 +262,7 @@
 
               .list-settings-buttons {
                 @extend %cont-truncated;
+
                 padding: ($baseline/2) 0;
                 border-bottom: 1px solid $gray-l4;
               }
@@ -284,6 +291,7 @@
           @extend %ui-btn-flat-outline;
           @extend %t-action3;
           @extend %t-strong;
+
           display: block;
           padding: ($baseline/2);
 
@@ -296,6 +304,7 @@
           @extend %ui-btn-flat-outline;
           @extend %t-action3;
           @extend %t-strong;
+
           display: inline-block;
           padding: ($baseline/2);
           width: 49%;
@@ -306,6 +315,7 @@
           @extend %ui-btn-non;
           @extend %t-action4;
           @extend %t-strong;
+
           display: inline-block;
           padding: ($baseline/2);
           width: 49%;
@@ -319,7 +329,9 @@
 
         .remove-setting {
           @include transition(color .25s ease-in-out);
+
           @extend %t-action1;
+
           display: inline-block;
           background: transparent;
           color: $blue-l3;
